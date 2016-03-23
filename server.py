@@ -33,12 +33,21 @@ class receiveThread(threading.Thread):
 
     def run(self):
         while True:
-            msg = self.client.recv(1024)
+            try:
+                msg = self.client.recv(1024)
+            except:
+                break
             if msg:
                 print msg
                 for receiver in lists:
                     if receiver['address'] != self.address:
-                        receiver['client'].sendall(msg)
+                        print self.address, ' -> ', receiver['address']
+                        try:
+                            receiver['client'].sendall(msg)
+                        except Exception, e:
+                            print '已登出该用户'
+                            lists.remove(receiver)
+                            print lists
 
 # while True:
 #     c, addr = s.accept()
