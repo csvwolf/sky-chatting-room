@@ -21,16 +21,19 @@ class receiveThread(threading.Thread):
 
     def run(self):
         while 1:
-            word = s.recv(1024)
+            word = eval(s.recv(1024).decode('utf8'))
+            print word
             if (word):
                 text['state'] = NORMAL
-                text.insert(END, '\n' + word)
+                text.insert(END, '\n' + word['author'] + ': ' + word['content'])
                 text['state'] = DISABLED
 
 def postMessage():
     text['state'] = NORMAL
-    text.insert(END, '\n' + userInput.get() + ': ' + messageInput.get())
-    s.sendall(userInput.get() + ': ' + messageInput.get())
+    content = userInput.get() + ': ' + messageInput.get()
+    text.insert(END, '\n' + content)
+    content = "{'type': 'message', 'author': '" + userInput.get() + "', 'content': '" + messageInput.get() + "'}"
+    s.sendall(content.encode('utf8'))
     text['state'] = DISABLED
 
 # text.tag_add("here", "1.0", "1.4")
@@ -63,8 +66,11 @@ postMessageBtn.grid(row=2, column=9)
 #
 # E2.pack()
 
-receiveThread().start()
+receiver = receiveThread()
+receiver.setDaemon(True)
+receiver.start()
+
 
 root.mainloop()
-
+s.sendall("{'type': 'command', 'content': 'quit'}".encode('utf8'))
 s.close()

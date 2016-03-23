@@ -19,11 +19,14 @@ class scanThread(threading.Thread):
     def run(self):
         while True:
             c, addr = s.accept()
-            lists.append({'client': c, 'address': addr})
-            receiveThread(c, addr).start()
+            receiver = receiveThread(c, addr)
+            threadLock.acquire()
+            lists.append(receiver)
+            threadLock.release()
+            receiver.start()
             print lists
             print 'Got connection from', addr
-            c.send('Thank you for connecting')
+            # c.send('Thank you for connecting')
 
 class receiveThread(threading.Thread):
     def __init__(self, client, address):
@@ -34,20 +37,27 @@ class receiveThread(threading.Thread):
     def run(self):
         while True:
             try:
-                msg = self.client.recv(1024)
+                msg = eval(self.client.recv(1024).decode('utf8'))
             except:
                 break
             if msg:
                 print msg
-                for receiver in lists:
-                    if receiver['address'] != self.address:
-                        print self.address, ' -> ', receiver['address']
-                        try:
-                            receiver['client'].sendall(msg)
-                        except Exception, e:
-                            print '已登出该用户'
-                            lists.remove(receiver)
-                            print lists
+                if msg['type'] == 'message':
+                    threadLock.acquire()
+                    for receiver in lists:
+                        if receiver.address != self.address:
+                            print self.address, ' -> ', receiver.address
+                            try:
+                                receiver.client.sendall(repr(msg).encode('utf8'))
+                            except Exception, e:
+                                lists.remove(receiver)
+                    threadLock.release()
+                elif msg['type'] == 'command':
+                    if msg['content'] == 'quit':
+                        threadLock.acquire()
+                        lists.remove(self)
+                        threadLock.release()
+                        break
 
 # while True:
 #     c, addr = s.accept()
@@ -69,8 +79,9 @@ class receiveThread(threading.Thread):
 if __name__ == '__main__':
     scanner = scanThread()
     scanner.start()
+    threadLock = threading.Lock()
 
-# for client in lists:
-#     client['client'].close()
+for client in lists:
+    client.client.close()
 
 
