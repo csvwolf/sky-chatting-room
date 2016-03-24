@@ -1,12 +1,16 @@
 from Tkinter import *
 import socket
 import threading
+from sockpack import *
 
 root = Tk()
 text = Text(root)
 text.insert(INSERT, "Hello.....")
 text.insert(END, "Bye Bye.....")
 text.grid(row = 0, columnspan=15)
+text.tag_config('self', foreground='red')
+
+#scroller = Scrollbar(text, orient=VERTICAL)
 
 s = socket.socket()
 
@@ -18,22 +22,32 @@ s.connect((host, port))
 class receiveThread(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
+        self.counter = 0
 
     def run(self):
         while 1:
-            word = eval(s.recv(1024).decode('utf8'))
+            word = recv_msg(s)
+            if word:
+                word = eval(word)
             print word
             if (word):
                 text['state'] = NORMAL
                 text.insert(END, '\n' + word['author'] + ': ' + word['content'])
+
+                self.counter += 1
+                text.yview_scroll(self.counter, 'unit')
+
                 text['state'] = DISABLED
 
 def postMessage():
     text['state'] = NORMAL
     content = userInput.get() + ': ' + messageInput.get()
-    text.insert(END, '\n' + content)
+    text.insert(END, '\n' + content, 'self')
+    receiver.counter += 1
+    text.yview_scroll(receiver.counter, 'unit')
     content = "{'type': 'message', 'author': '" + userInput.get() + "', 'content': '" + messageInput.get() + "'}"
-    s.sendall(content.encode('utf8'))
+    send_msg(s, content.encode('utf8'))
+    # s.sendall(content.encode('utf8'))
     text['state'] = DISABLED
 
 # text.tag_add("here", "1.0", "1.4")
@@ -72,5 +86,5 @@ receiver.start()
 
 
 root.mainloop()
-s.sendall("{'type': 'command', 'content': 'quit'}".encode('utf8'))
+send_msg(s, "{'type': 'command', 'content': 'quit'}".encode('utf8'))
 s.close()

@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import socket
 import threading
+from sockpack import *
 
 s = socket.socket()
 
@@ -37,7 +38,7 @@ class receiveThread(threading.Thread):
     def run(self):
         while True:
             try:
-                msg = eval(self.client.recv(1024).decode('utf8'))
+                msg = eval(recv_msg(self.client))
             except:
                 break
             if msg:
@@ -48,7 +49,7 @@ class receiveThread(threading.Thread):
                         if receiver.address != self.address:
                             print self.address, ' -> ', receiver.address
                             try:
-                                receiver.client.sendall(repr(msg).encode('utf8'))
+                                send_msg(receiver.client, repr(msg).encode('utf8'))
                             except Exception, e:
                                 lists.remove(receiver)
                     threadLock.release()
@@ -80,8 +81,9 @@ if __name__ == '__main__':
     scanner = scanThread()
     scanner.start()
     threadLock = threading.Lock()
+    mutex = threadLock.Lock()
 
-for client in lists:
-    client.client.close()
+    for client in lists:
+        client.client.close()
 
 
