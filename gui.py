@@ -6,6 +6,9 @@ import tkMessageBox
 import socket
 import threading
 from sockpack import *
+import json
+import time
+from aes import *
 
 root = Tk()
 root.title('chatting-room')
@@ -19,7 +22,8 @@ text['state'] = DISABLED
 
 s = socket.socket()
 
-host = '115.28.26.5'
+# host = '115.28.26.5'
+host = socket.gethostname()
 port = 1234
 status = True
 try:
@@ -40,12 +44,25 @@ class receiveThread(threading.Thread):
             except Exception, e:
                 break
             if word:
-                word = eval(word)
+                word = json.loads(decrypt(word, getPassword()))
+                #print word
                 text['state'] = NORMAL
                 text.insert(END, '\n' + word['author'] + ': ' + word['content'])
                 self.counter += 1
                 text.yview_scroll(self.counter, 'unit')
                 text['state'] = DISABLED
+
+class protectionThread(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+
+    def run(self):
+
+        while 1:
+            command = {'type': 'command', 'content': 'keep'}
+            send_msg(s, encrypt(json.dumps(command), getPassword()))
+            time.sleep(60)
+
 
 def postMessage():
     length = len(messageInput.get())
@@ -55,8 +72,9 @@ def postMessage():
         text.insert(END, '\n' + content, 'self')
         receiver.counter += 1
         text.yview_scroll(receiver.counter, 'unit')
-        content = "{'type': 'message', 'author': '" + userInput.get() + "', 'content': '" + messageInput.get() + "'}"
-        send_msg(s, content.encode('utf8'))
+        content = {'type': 'message', 'author': userInput.get(), 'content': messageInput.get()}
+        # content = "{'type': 'message', 'author': '" + userInput.get() + "', 'content': '" + messageInput.get() + "'}"
+        send_msg(s, encrypt(json.dumps(content), getPassword()))
         messageInput.focus()
 
         messageInput.focus_set()
@@ -97,7 +115,10 @@ postMessageBtn.grid(row=2, column=9)
 receiver = receiveThread()
 receiver.setDaemon(True)
 receiver.start()
+protection = protectionThread()
+protection.setDaemon(True)
+protection.start()
 
 root.mainloop()
-send_msg(s, "{'type': 'command', 'content': 'quit'}".encode('utf8'))
+send_msg(s, encrypt(json.dumps({'type': 'command', 'content': 'quit'}), getPassword()))
 s.close()

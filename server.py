@@ -4,10 +4,13 @@ import socket
 import threading
 import time
 from sockpack import *
+import json
+from aes import *
 
 s = socket.socket()
 
-host = '115.28.26.5'
+#host = '115.28.26.5'
+host = socket.gethostname()
 port = 1234
 s.bind((host, port))
 
@@ -27,8 +30,8 @@ class scanThread(threading.Thread):
             lists.append(receiver)
             threadLock.release()
             receiver.start()
-            print lists
-            print 'Got connection from', addr
+            #print lists
+            #print 'Got connection from', addr
             # c.send('Thank you for connecting')
 
 class protectionThread(threading.Thread):
@@ -40,8 +43,8 @@ class protectionThread(threading.Thread):
         c.connect((host, port))
 
         while 1:
-            send_msg(c, "{'type': 'command', 'content': 'keep'}".encode('utf8'))
-            time.sleep(5)
+            send_msg(c, encrypt(json.dumps({'type': 'command', 'content': 'keeper'}), getPassword()))
+            time.sleep(60)
 
 
 class receiveThread(threading.Thread):
@@ -56,11 +59,11 @@ class receiveThread(threading.Thread):
     def run(self):
         while True:
             try:
-                msg = eval(recv_msg(self.client))
+                msg = json.loads(decrypt(recv_msg(self.client), getPassword()))
             except:
                 break
             if msg:
-                print msg
+                #print msg
                 if msg['type'] == 'message':
                     mutex.acquire()
                     if receiveThread.counter == 0:
@@ -69,9 +72,9 @@ class receiveThread(threading.Thread):
                     mutex.release()
                     for receiver in lists:
                         if receiver.address != self.address and receiver.type != 'protector':
-                            print self.address, ' -> ', receiver.address
+                            #print self.address, ' -> ', receiver.address
                             try:
-                                send_msg(receiver.client, repr(msg).encode('utf8'))
+                                send_msg(receiver.client, encrypt(json.dumps(msg), getPassword()))
                             except Exception, e:
                                 lists.remove(receiver)
                     mutex.acquire()
@@ -86,10 +89,10 @@ class receiveThread(threading.Thread):
                         threadLock.release()
                         self.client.close()
                         break
-                    elif msg['content'] == 'keep':
+                    elif msg['content'] == 'keeper':
                         self.type = 'protector'
                         recv_msg(self.client)
-                        send_msg(self.client, "{'type': 'command', 'content': 'keep'}".encode('utf8'))
+                        send_msg(self.client, encrypt(json.dumps({'type': 'command', 'content': 'keep'}), getPassword()))
 
 # while True:
 #     c, addr = s.accept()
