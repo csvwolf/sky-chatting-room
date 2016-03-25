@@ -1,23 +1,32 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from Tkinter import *
+import tkMessageBox
 import socket
 import threading
 from sockpack import *
 
 root = Tk()
+root.title('chatting-room')
 text = Text(root)
 text.insert(INSERT, "Hello.....")
-text.insert(END, "Bye Bye.....")
 text.grid(row = 0, columnspan=15)
 text.tag_config('self', foreground='red')
+text['state'] = DISABLED
 
 #scroller = Scrollbar(text, orient=VERTICAL)
 
 s = socket.socket()
 
-host = socket.gethostname()
+host = '115.28.26.5'
 port = 1234
 status = True
-s.connect((host, port))
+try:
+    s.connect((host, port))
+except Exception, e:
+    tkMessageBox.showerror("连接失败", "服务器暂未开放")
+    exit()
 
 class receiveThread(threading.Thread):
     def __init__(self):
@@ -26,29 +35,34 @@ class receiveThread(threading.Thread):
 
     def run(self):
         while 1:
-            word = recv_msg(s)
+            try:
+                word = recv_msg(s)
+            except Exception, e:
+                break
             if word:
                 word = eval(word)
-            print word
-            if (word):
                 text['state'] = NORMAL
                 text.insert(END, '\n' + word['author'] + ': ' + word['content'])
-
                 self.counter += 1
                 text.yview_scroll(self.counter, 'unit')
-
                 text['state'] = DISABLED
 
 def postMessage():
-    text['state'] = NORMAL
-    content = userInput.get() + ': ' + messageInput.get()
-    text.insert(END, '\n' + content, 'self')
-    receiver.counter += 1
-    text.yview_scroll(receiver.counter, 'unit')
-    content = "{'type': 'message', 'author': '" + userInput.get() + "', 'content': '" + messageInput.get() + "'}"
-    send_msg(s, content.encode('utf8'))
-    # s.sendall(content.encode('utf8'))
-    text['state'] = DISABLED
+    length = len(messageInput.get())
+    if length > 0:
+        text['state'] = NORMAL
+        content = userInput.get() + ': ' + messageInput.get()
+        text.insert(END, '\n' + content, 'self')
+        receiver.counter += 1
+        text.yview_scroll(receiver.counter, 'unit')
+        content = "{'type': 'message', 'author': '" + userInput.get() + "', 'content': '" + messageInput.get() + "'}"
+        send_msg(s, content.encode('utf8'))
+        messageInput.focus()
+
+        messageInput.focus_set()
+        messageInput.delete(0, length)
+        # s.sendall(content.encode('utf8'))
+        text['state'] = DISABLED
 
 # text.tag_add("here", "1.0", "1.4")
 # text['state'] = DISABLED
@@ -83,7 +97,6 @@ postMessageBtn.grid(row=2, column=9)
 receiver = receiveThread()
 receiver.setDaemon(True)
 receiver.start()
-
 
 root.mainloop()
 send_msg(s, "{'type': 'command', 'content': 'quit'}".encode('utf8'))

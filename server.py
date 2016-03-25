@@ -2,11 +2,12 @@
 # -*- coding: utf-8 -*-
 import socket
 import threading
+import time
 from sockpack import *
 
 s = socket.socket()
 
-host = socket.gethostname()
+host = '115.28.26.5'
 port = 1234
 s.bind((host, port))
 
@@ -20,7 +21,7 @@ class scanThread(threading.Thread):
     def run(self):
         while True:
             c, addr = s.accept()
-            receiver = receiveThread(c, addr)
+            receiver = receiveThread(c, addr, 'receiver')
             receiver.setDaemon(True)
             threadLock.acquire()
             lists.append(receiver)
@@ -30,13 +31,27 @@ class scanThread(threading.Thread):
             print 'Got connection from', addr
             # c.send('Thank you for connecting')
 
+class protectionThread(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+
+    def run(self):
+        c = socket.socket()
+        c.connect((host, port))
+
+        while 1:
+            send_msg(c, "{'type': 'command', 'content': 'keep'}".encode('utf8'))
+            time.sleep(5)
+
+
 class receiveThread(threading.Thread):
     counter = 0
 
-    def __init__(self, client, address):
+    def __init__(self, client, address, type):
         threading.Thread.__init__(self)
         self.client = client
         self.address = address
+        self.type = type
 
     def run(self):
         while True:
@@ -53,7 +68,7 @@ class receiveThread(threading.Thread):
                     receiveThread.counter += 1
                     mutex.release()
                     for receiver in lists:
-                        if receiver.address != self.address:
+                        if receiver.address != self.address and receiver.type != 'protector':
                             print self.address, ' -> ', receiver.address
                             try:
                                 send_msg(receiver.client, repr(msg).encode('utf8'))
@@ -69,7 +84,12 @@ class receiveThread(threading.Thread):
                         threadLock.acquire()
                         lists.remove(self)
                         threadLock.release()
+                        self.client.close()
                         break
+                    elif msg['content'] == 'keep':
+                        self.type = 'protector'
+                        recv_msg(self.client)
+                        send_msg(self.client, "{'type': 'command', 'content': 'keep'}".encode('utf8'))
 
 # while True:
 #     c, addr = s.accept()
@@ -90,12 +110,12 @@ class receiveThread(threading.Thread):
 
 if __name__ == '__main__':
     scanner = scanThread()
-    scanner.setDaemon(True)
     scanner.start()
+    protectionThread().start()
     threadLock = threading.Lock()
     mutex = threading.Lock()
 
-    for client in lists:
-        client.client.close()
+    # for client in lists:
+    #     client.client.close()
 
 
