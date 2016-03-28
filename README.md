@@ -14,7 +14,15 @@ A little demo in socket, solving the following problems:
 
 4. Reader-Writer Model in Threading Management
 
-## 收发数据交互格式:
+## Using
+
+** If you want to input '中文' in your osx, you should update your version of tk, ** else, by running it, the following is necessary:
+
+```
+pip install pycrypto
+```
+
+## Posting Message Format:
 
 `{'type': type, 'author': author, 'content': content}`
 
