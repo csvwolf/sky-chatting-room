@@ -16,7 +16,7 @@ A little demo in socket, solving the following problems:
 
 ## Using
 
-** If you want to input '中文' in your osx, you should update your version of tk, ** else, by running it, the following is necessary:
+**If you want to input '中文' in your osx, you should update your version of tk, ** else, by running it, the following is necessary:
 
 ```
 pip install pycrypto
@@ -32,12 +32,12 @@ author: <string> name of the poster
 
 content:<string>
 
-  command: \[`quit`|`keeper`|`keep`\]
+  - command: \[`quit`|`keeper`|`keep`\]
   
-   - `quit`: When you quit the client, send the message to quit the link.
+       - `quit`: When you quit the client, send the message to quit the link.
+       
+       - `keeper`: The server protection thread sends the message to keep the link.
+       
+       - `keep`: If you want to keep the long link, send the message.
    
-   - `keeper`: The server protection thread sends the message to keep the link.
-   
-   - `keep`: If you want to keep the long link, send the message.
-   
-  message: content-value
+  - message: content-value

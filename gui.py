@@ -10,6 +10,10 @@ import json
 import time
 from aes import *
 
+"""
+GUI Client
+"""
+
 root = Tk()
 root.title('chatting-room')
 text = Text(root)

@@ -4,6 +4,10 @@
 import socket
 import threading
 
+"""
+一个过时的Terminal端,如果需要使用,请按照gui.py补全
+"""
+
 s = socket.socket()
 
 host = socket.gethostname()
