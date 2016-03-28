@@ -2,6 +2,10 @@
 from Crypto.Cipher import AES
 from Crypto import Random
 
+"""
+加密模块
+"""
+
 def getPassword():
     return '1111111111111111'
 

@@ -22,10 +22,11 @@ text['state'] = DISABLED
 
 s = socket.socket()
 
-# host = '115.28.26.5'
+#host = '115.28.26.5'
 host = socket.gethostname()
 port = 1234
-status = True
+#status = True
+
 try:
     s.connect((host, port))
 except Exception, e:
@@ -33,9 +34,12 @@ except Exception, e:
     exit()
 
 class receiveThread(threading.Thread):
+    """
+    用于接受消息的线程
+    """
     def __init__(self):
         threading.Thread.__init__(self)
-        self.counter = 0
+        self.counter = 0    # 滚屏计数
 
     def run(self):
         while 1:
@@ -49,10 +53,15 @@ class receiveThread(threading.Thread):
                 text['state'] = NORMAL
                 text.insert(END, '\n' + word['author'] + ': ' + word['content'])
                 self.counter += 1
-                text.yview_scroll(self.counter, 'unit')
+                text.yview_scroll(self.counter, 'unit')     # 用于计数
                 text['state'] = DISABLED
 
 class protectionThread(threading.Thread):
+
+    """
+    保持客户端长连接的线程
+    """
+
     def __init__(self):
         threading.Thread.__init__(self)
 
@@ -65,6 +74,10 @@ class protectionThread(threading.Thread):
 
 
 def postMessage():
+    """
+    点击按钮所做的操作
+    :return:
+    """
     length = len(messageInput.get())
     if length > 0:
         text['state'] = NORMAL
@@ -78,7 +91,7 @@ def postMessage():
         messageInput.focus()
 
         messageInput.focus_set()
-        messageInput.delete(0, length)
+        messageInput.delete(0, length)  # 删除已发送的内容
         # s.sendall(content.encode('utf8'))
         text['state'] = DISABLED
 
@@ -120,5 +133,6 @@ protection.setDaemon(True)
 protection.start()
 
 root.mainloop()
+# 如果窗口被关闭,发送离开消息
 send_msg(s, encrypt(json.dumps({'type': 'command', 'content': 'quit'}), getPassword()))
 s.close()
